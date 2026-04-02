@@ -1,0 +1,9 @@
+# Novel Engine dependencies
+
+# RAG (optional — system falls back to BM25 if not configured)
+# sentence-transformers>=2.2.0
+# faiss-cpu>=1.7.4
+
+# No hard dependencies for core functionality.
+# The system runs as a Claude Code plugin — all logic is in agent/skill MD files.
+# Python scripts are utility helpers only.

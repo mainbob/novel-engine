@@ -1,0 +1,15 @@
+{
+  "name": "novel-engine",
+  "version": "0.1.0",
+  "description": "Rule-compilable novel writing engine. Understands any narrative structure, generates matching detection rules, supports human-AI co-creation.",
+  "skills": [
+    "novel-interview",
+    "novel-blueprint",
+    "novel-outline",
+    "novel-direction",
+    "novel-write",
+    "novel-review",
+    "novel-query",
+    "novel-resume"
+  ]
+}
