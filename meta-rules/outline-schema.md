@@ -82,6 +82,9 @@ outline/
 chapter: 15
 arc: A篇章
 pov: char_a
+word_target: [2800, 3200]
+scene_tags: [has_dialogue, emotional_beat, internal_turmoil]   # Context Agent craft 选择用
+chapter_type: reinforcement                                     # opening | reinforcement | shatter | pattern-anchor | mirror | signature-line | pov-switch
 ---
 
 ## 目标
@@ -98,6 +101,28 @@ pov: char_a
 ## 钩子
 **承接**: [回应上一章的什么钩子]
 **种下**: [本章末尾留下什么钩子]
+
+## 验收标准（acceptance_criteria）
+> 交给 Verification Agent 逐条勾选的"本章是否交付"清单。
+> 每条必须是可由读章节正文直接判定的二元命题（是/否），不是主观评价。
+
+- [ ] A: 某个具体情节动作已发生（例：沈渊在南郊挖出一件物品并带回）
+- [ ] B: 某个视角人物的知识边界有具体变化（例：沈渊确认浣花笺寄件人身份）
+- [ ] C: 某个具体钩子被种下（例：挑夫队第七人被记住）
+- [ ] D: 某个具体钩子被回应（例：ch0 章末『备马南郊』的指令被落地）
+
+## 硬约束（hard_constraints）
+> 不得违反的本章专属红线。每条是通用 Verifier 可扫描的结构化断言。
+
+- forbidden_names: []                  # 本章绝对不得出现的名字（含代称）
+- forbidden_facts: []                  # 本章不得泄露给读者的事实 id（来自 state.facts）
+- required_signature_lines: []         # 本章必须出现的签名台词 id（若有）
+- flashback_budget_chars: 0            # 闪回字数硬上限
+- flashback_visual_anchors_allowed: [] # 本章允许的闪回视觉锚（白名单）
+- dialogue_marker_max: 3               # "说/道" 上限
+- must_fire_habits: []                 # 本章必须触发的 habit id（覆盖 character-card 默认值，可为空）
+- pov_lock: char_a                     # 全程 POV 锁定
+- custom_rules: []                     # 其他一次性硬约束（自由文本，但每条必须独立可判）
 ```
 
 ### 可选字段（由理解层根据 blueprint 决定生成哪些）
@@ -140,7 +165,9 @@ pov: char_a
 ## Schema 规则
 
 1. 总纲和篇章大纲由 `/novel-outline` 的共创过程产出
-2. 章节大纲的必须字段（目标、冲突、状态变更、钩子）适用于所有项目
+2. 章节大纲的必须字段（目标、冲突、状态变更、钩子、验收标准、硬约束）适用于所有项目
+6. `acceptance_criteria` 是 Verifier 的一等验收输入——每条必须可在正文中独立判定为 PASS/FAIL，不得出现"流畅"、"动人"、"克制"等主观描述
+7. `hard_constraints` 中的结构化字段由 Verifier 通用扫描；`custom_rules` 作为自由文本逃生舱，但代价是每条由 Verifier 用 LLM 判断而非机械扫描
 3. 可选字段由理解层在生成 blueprint 时决定——blueprint 中定义了信息差追踪，则章节大纲自动包含"信息差变化"字段
 4. 章节大纲可以由系统自动生成，也可以由用户手动编写或修改
 5. Context Agent 读取章节大纲时，如果某个可选字段不存在，直接跳过（不报错）

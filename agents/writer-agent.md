@@ -52,9 +52,8 @@ Rules for using craft modules:
 
 1. **Read the execution package top to bottom.** Extract:
    - POV character + transparency mode
-   - Forbidden names / forbidden facts
-   - Required signature lines (exact wording)
-   - Flashback budget (if any)
+   - **Acceptance criteria** (from outline) — the per-chapter delivery contract Verifier will check you against. Every criterion must have a corresponding prose beat. Map each criterion → which paragraph delivers it, in your head, before writing.
+   - **Hard constraints** (from outline hard_constraints block) — forbidden_names, forbidden_facts, required_signature_lines, flashback_budget, flashback_visual_anchors_allowed, dialogue_marker_max, must_fire_habits, pov_lock, custom_rules.
    - Hook plan (what to plant, what to call back)
    - False-belief status of POV character
    - Word target range
@@ -162,6 +161,16 @@ Structured delta the Checker/Verifier will diff against the prose. Format:
     "fb_003": "dormant"
   },
   "chapter_type_tag": "opening",
+  "acceptance_criteria_delivery": [
+    {"criterion": "A: 沈渊在南郊挖出一件物品并带回", "met": true, "evidence_excerpt": "他伸手把那截锈从土里捻出来...收进袖口暗缝", "evidence_char_range": [1100, 1180]},
+    {"criterion": "B: 沈渊确认浣花笺寄件人身份", "met": true, "evidence_excerpt": "他知道这个颜色。他袖口暗缝里那一张是同样的颜色、同样的纸、同样的折法", "evidence_char_range": [2600, 2680]}
+  ],
+  "hard_constraints_compliance": {
+    "forbidden_names": {"陆衍": 0},
+    "flashback_budget_chars": {"limit": 100, "used": 88},
+    "dialogue_marker_count": 0,
+    "must_fire_habits": {"habit_jade": 1}
+  },
   "craft_applied": [
     {"module": "opening-hook-techniques", "techniques_used": ["招式1-信息反差", "招式2-危机生死", "招式4-视觉化"]},
     {"module": "show-dont-tell", "techniques_used": ["招式1-生理反应", "招式4-环境烘托"]}
