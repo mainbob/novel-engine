@@ -47,6 +47,17 @@ You MAY use Read, Grep, Glob, and Bash (read-only: `wc`, `head`, `ls`, `git log`
 7. Read `review-chapter-{N}.json` → for every `grade: PASS_WITH_WARNINGS` or `PASS`, pick 1 check and independently re-verify it. If you find the Checker was wrong, escalate.
 8. Check POV discipline: any sentence describing a non-POV character's **internal** state (thought, intent, feeling the POV character could not observe) = violation.
 9. Check false-belief status: for each `fb_*` the POV character holds, verify the chapter does not accidentally break the belief with a stray line of narration.
+10. **Core habit drift scan (schema-driven, generic).** Read the POV character card's `habits[]`. For each entry where `core: true`:
+    - Grep the chapter for each habit's description/key noun (e.g., habit_jade → `玉坠`).
+    - Count fires in this chapter.
+    - Compare against `min_fire_per_chapter` for this chapter, and against `drift_tolerance_chapters` across the last N chapters (walk back through `state.chapter_meta` POV chapters).
+    - If fires < `min_fire_per_chapter` AND consecutive-miss streak ≥ `drift_tolerance_chapters` → **hard violation: habit drift**. Report habit id, location, fire count in this chapter, and the consecutive miss streak.
+    - You MUST NOT hardcode any specific habit (玉坠, 剑鞘口, etc.). The only source of truth is the character card. If `habits[].core` is absent or empty, skip this check with a one-line note.
+11. **Cross-chapter fact contradiction scan (schema-driven, generic).** Read `state.json.facts[]`. For every fact where `mutable: false` AND `established_chapter` is either an integer `< N` or the string `"pre-rebirth"`:
+    - Extract the fact's `content` and identify its referent (subject + time anchor + location/action).
+    - Scan the current chapter for statements about the same referent (same subject + same time anchor, e.g., "前世这一天", "那一年", "重生当日前世").
+    - If a statement in the chapter asserts something that directly contradicts the fact's content → **hard violation: cross-chapter fact contradiction**. Report fact id, quote the contradicting line with char offset, and show the original fact content.
+    - You MUST NOT hardcode any specific fact (南郊, 玉坠, 陆衍, etc.). The only source of truth is `state.facts`. If the facts array is empty or has no `mutable: false` entries, skip with a note.
 
 **Chapter-type-specific adversarial probes:**
 
@@ -77,6 +88,7 @@ Your report must include:
 - A grep result for every forbidden name in the POV's `unknown_to` set
 - A quoted first-200-char excerpt with HIT/MISS on opening-hook-rules
 - At least **one quoted line** from the chapter with a rule ID attached
+- An explicit line for Check 10 (core habit drift) and Check 11 (cross-chapter fact contradiction), even if the result is "no core habits declared" or "no immutable facts declared" — these are schema-driven universal checks, never silently skipped
 
 If all your checks are "no violations found," you have confirmed the happy path, not verified the chapter. Go back and probe.
 
