@@ -51,9 +51,28 @@
 - 补充指示 → "这章我希望战斗场景多一些" → 追加到执行包
 - 修改 → "钩子我想换一个" → 调整后再确认
 
-### Step 2: Writer Agent（写作）
+### Step 2: Writer Agent（写作 + 结构化 delta）
 
-调用 Writer Agent，基于执行包产出章节正文。
+调用 Writer Agent（`agents/writer-agent.md`），基于执行包产出 **两个文件**（同一轮输出）：
+
+1. `chapters/第{NNNN}章-{title}.md` — 纯正文
+2. `state/writer-delta-{N}.json` — 结构化交付 delta（binding）
+
+**Writer 必须在响应末行输出解析锚**：
+- 成功：`WRITER: DONE chapter={N} words={count} delta_written=true`
+- 失败：`WRITER: BLOCKED reason="..."`
+
+**闸门**：
+- 如果 delta 文件缺失 → 阻断，回到 Step 2 重跑
+- 如果 Writer 输出 `BLOCKED` → 上报用户，不进入 Step 3
+- 如果主流程无法正则解析到末行锚 → 视为 Writer 失败
+
+**Delta 绑定契约**（Checker / Verifier 会机械 diff）：
+- `word_count` 必须与 `wc -m` 结果一致
+- `opening.first_200_chars` 必须与正文前 200 字完全一致
+- `forbidden_names_checked` 必须覆盖执行包 `forbidden_names` 全集
+- `signature_lines_used[].exact_match` 必须可通过字符串精确匹配验证
+- `flashback_fragments[].char_count` 总和必须等于 `flashback_total_chars`
 
 **模式差异**:
 - 标准模式：完整写作
@@ -78,7 +97,50 @@
 3. 按 ROI 处理 medium/low
 4. 执行去AI化全文检查
 
-**闸门**: 如果去AI化检查不通过 → 阻断，不进入 Step 5。
+**闸门**: 如果去AI化检查不通过 → 阻断，不进入 Step 4.5。
+
+### Step 4.5: Re-Check + Verification（修缮后复检 + 对抗式红队）
+
+**必须执行，不得跳过。** 两个子步骤，顺序执行：
+
+#### Step 4.5a: Re-Check
+
+1. 重新调用 Checker Agent 对修缮后的章节执行一次完整审查
+2. 覆写 `{project}/state/review-{N}.json`（不保留旧版）
+3. 如果新报告仍有 critical 违反 → 回到 Step 4 再修缮一次（最多 2 轮）
+4. 2 轮后仍有 critical → 阻断并报告给用户
+
+**目的**: 防止审查报告与实际章节内容不一致。
+
+#### Step 4.5b: Verification Agent（对抗式红队）
+
+调用 Verification Agent（`agents/verification-agent.md`）作为 Checker 之外的**独立红队**。Verifier 不是复查 Checker——它的任务是**尝试把章节打回 FAIL**。
+
+**输入**：
+- 章节文件路径
+- `state/writer-delta-{N}.json`（Writer 的自报 delta）
+- `state/review-{N}.json`（Checker 的 post-polish 报告）
+- `outline/chapters/chapter-{N}.md`
+- `generated-rules/` 目录
+- `state/state.json`
+
+**Verifier 执行的机械校验**（基于 writer-delta）：
+- `wc -m` 正文 vs `delta.word_count`
+- 正文前 200 字 vs `delta.opening.first_200_chars`
+- `grep -c` 每个 `forbidden_names_checked` 的 key 并对比数值
+- 每条 `signature_lines_used[].text_as_written` 必须是正文子串
+- 每个 `flashback_fragments[].char_count` 必须与正文中对应段落实测一致
+- `delta.flashback_total_chars` ≤ outline 规定的预算
+
+**Verifier 必须以末行锚结束**：`VERDICT: PASS` / `VERDICT: FAIL` / `VERDICT: PARTIAL`。主流程用正则解析。
+
+**闸门**：
+- `VERDICT: PASS` → 写入 `state/verification-{N}.md`，进入 Step 5
+- `VERDICT: FAIL` → 写入 `state/verification-{N}.md`，回到 Step 4 修缮（与 Step 4.5a 共享 2 轮上限）
+- `VERDICT: PARTIAL` → 记录环境限制到 `verification-{N}.md`，上报用户由用户裁决是否放行
+- 无法解析末行锚 → 视为 Verifier 失败，阻断
+
+**目的**: Checker 是 LLM 读正文反向推断；Verifier 是基于 Writer 自报 delta 的机械比对 + 对抗式探针。两者覆盖不同类型的错误。
 
 ### Step 5: Data Agent（数据沉淀）
 
@@ -100,17 +162,23 @@
 ## 充分性闸门（所有必须满足）
 
 1. 非空章节文件存在
-2. Step 3 产出了审查报告
-3. Step 4 处理了所有 critical 问题
-4. Step 4 去AI化检查通过
-5. Step 5 更新了 state.json 和角色卡
+2. `state/writer-delta-{N}.json` 存在且字段完整
+3. Writer 末行锚解析成功（`WRITER: DONE`）
+4. Step 3 产出了审查报告
+5. Step 4 处理了所有 critical 问题
+6. Step 4 去AI化检查通过
+7. Step 4.5a 复检报告无 critical 违反且已覆写 review-{N}.json
+8. Step 4.5b Verification Agent 返回 `VERDICT: PASS`（或用户明确放行 PARTIAL）
+9. Step 5 更新了 state.json 和角色卡
 
 ## 输出
 
 - `{project}/chapters/第{NNNN}章-{title}.md`
 - `{project}/state/context-{N}.md`
-- `{project}/state/review-{N}.json`
+- `{project}/state/writer-delta-{N}.json`（Writer 结构化交付）
+- `{project}/state/review-{N}.json`（Checker post-polish 版本）
 - `{project}/state/polish-{N}.md`
+- `{project}/state/verification-{N}.md`（Verifier 红队报告）
 - `{project}/summaries/chapter-{N}.md`
 - 更新后的 `state.json` 和 `character-cards/`
 
