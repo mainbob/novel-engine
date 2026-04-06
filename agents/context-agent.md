@@ -40,8 +40,47 @@
 7. 执行视角过滤
 8. 读取 generated-rules/ → 提取与本章相关的硬约束
 9. 读取设定文档中与本章相关的段落（通过 RAG 检索或直接引用）
-10. 组装创作执行包
+10. **Craft 模块选择**（harness engineering，按需借调）
+11. 组装创作执行包
 ```
+
+## Step 10: Craft 模块选择（按需借调）
+
+**原则**：不要把全部写作心法塞进 Writer 的上下文——会污染注意力。
+只把**本章真正需要的**技巧模块注入执行包。
+
+### 选择协议
+
+1. 读取 `references/craft/INDEX.md` 获取所有可用模块的 trigger_tags
+2. 扫描大纲检测场景标签（作用于本章内容）：
+   - `has_dialogue`：出现"对话"、"说"、"问答"、"交谈" 关键词 或大纲明确写有对话场景
+   - `dialogue_heavy`：对话是本章主要戏肉（≥40% 字数用于对话）
+   - `has_combat` / `physical_confrontation`：出现"打斗"、"对峙"、"追杀"、"格挡"、"武力"
+   - `has_ensemble_4plus`：单场同时 ≥4 个有戏份的角色
+   - `emotional_beat`：关键情绪时刻（决心、崩溃、重逢、离别、困惑高潮）
+   - `high_stakes_scene`：关键转折或重大冲突
+   - `internal_turmoil`：内心戏为主（独白、认知失调、回忆闪回）
+   - `is_opening_chapter` / `is_arc_opening` / `is_pov_switch`：结构性开场
+3. 为每个命中的 trigger_tag 找到匹配的 craft 模块
+4. **去重 + 限额**：最多注入 **3 个模块**。优先级排序：
+   ```
+   opening-hook-techniques  (结构性最强)
+   > show-dont-tell         (底层公式)
+   > dialogue-no-said       (对话戏)
+   > action-scene           (动作戏)
+   > group-scene            (群像戏)
+   ```
+5. 如果 0 个模块命中 → 不注入（过场章默认走基线风格）
+6. 如果 0 模块命中但大纲标注 `emotional_beat` → 默认注入 `show-dont-tell`
+7. 读取选中模块的**完整内容**（frontmatter 之外），嵌入执行包 Section 6.5 `craft`
+8. 在执行包末尾的审计日志里记录选择理由：`craft_selected: [dialogue-no-said, show-dont-tell]  reason: "ch1 contains 2 dialogue beats + rebirth resolve monologue"`
+
+### 反模式
+
+- ❌ "以防万一全注入" → 污染注意力，Writer 会失焦
+- ❌ 把 craft 模块合并到 `writer-agent.md` 的 system prompt → 会常驻污染，和 harness engineering 原则相反
+- ❌ 重复注入：如果同一模块上一章已注入且本章场景高度相似，可以在执行包写 "craft reference: see ch{N-1} (dialogue-no-said)"，让 Writer 的前章记忆自行承接
+- ❌ 为了触发 opening-hook-techniques 强行把普通章标记为 opening
 
 ## 创作执行包结构
 
@@ -72,6 +111,11 @@
 
 ## 6. 风格指引
 [从蓝图和当前篇章的风格规则提取]
+
+## 6.5 Craft 模块（按需借调，来自 references/craft/）
+[本章匹配的 craft 模块全文内容（0-3 个模块）]
+[选择理由：命中了哪些 trigger_tags]
+[使用方式：Writer 按这些技巧执行本章的关键场景，不适用的场景不强行套用]
 
 ## 7. 叙事约束
 [从 generated-rules/ 提取的硬约束]
