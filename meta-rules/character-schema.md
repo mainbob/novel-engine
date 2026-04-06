@@ -133,9 +133,19 @@
   // half: 读者看到感知和情绪，看不到战略意图（如叶微）
   // opaque: 读者只看到外在行为（如陆衍）
 
-  // === 外观/习惯（写作参考）===
+  // === 外观/习惯（写作参考 + 连续性强制）===
   "appearance": {},
-  "habits": [],
+  "habits": [
+    {
+      "id": "habit_jade",
+      "description": "转动/抚摸玉坠",
+      "location": "胸前衣襟",                 // 物理位置——防止漂移到别处
+      "core": true,                            // true = 核心习惯，纳入 drift 检测
+      "min_fire_per_chapter": 1,               // 核心习惯在 POV 章节至少触发次数
+      "drift_tolerance_chapters": 2,           // 允许连续多少章不触发
+      "first_established_chapter": 0
+    }
+  ],
   "speech_examples": []
 }
 ```
@@ -149,3 +159,4 @@
 5. `current_state` 和 `knowledge` 在每章写完后由 Data Agent 更新
 6. `behavior_rules` 和 `masks` 等固定特征不随章节更新
 7. Context Agent 在写某角色视角时，只能注入该角色 `knowledge.knows` 中的信息
+8. `habits[].core = true` 的习惯由 Verifier 通用扫描：若 POV 角色的核心习惯连续超过 `drift_tolerance_chapters` 章未触发，VERDICT 直接 FAIL（habit drift）。Verifier 不硬编码任何具体习惯名，只读本字段

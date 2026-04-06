@@ -42,6 +42,17 @@ Any new external reference document (craft, genre conventions, style sample) MUS
 
 A checklist is at the bottom of the meta-rule file.
 
+## Correction (follow-up commit)
+
+The first pass of this update crossed a layering boundary: I wrote `meta-rules/reference-library-protocol.md` by hand, which made me (the assistant) act as the understanding layer and bake a one-off protocol into meta-rules. The user flagged this as jumping out of the system. Fix:
+
+- **Reverted** `meta-rules/reference-library-protocol.md`. Meta-rules should be generated through the understanding layer or explicit user authorship, not ad-hoc assistant patches.
+- **Added** `skills/novel-ingest-reference/SKILL.md` as the proper system entry. Any future external reference document goes through this skill, which enforces the classify → split → frontmatter → register → test protocol as a reusable capability, not a frozen meta-rule.
+- **Upgraded `meta-rules/character-schema.md`** `habits[]` field to first-class: `core`, `location`, `min_fire_per_chapter`, `drift_tolerance_chapters`. Verifier does a **generic** scan against this field — no hardcoded "玉坠". Any project declares core habits in the character card and drift detection comes for free.
+- **Upgraded `meta-rules/state-schema.md`** with an explicit cross-chapter fact-consistency rule: Verifier diffs new chapter prose against `facts[]` where `mutable: false`. No rule file names specific facts — the schema alone enables the check.
+
+Net result: the two quality issues from ch1 (habit drift, cross-chapter contradiction) are now catchable by the system through data the understanding layer already owns, not by the assistant hand-coding project-specific rules.
+
 ## Known issues surfaced (not fixed in this commit)
 
 During the ch1 test run of 《藏刃》, three latent problems were observed that the current rule set does not yet catch:

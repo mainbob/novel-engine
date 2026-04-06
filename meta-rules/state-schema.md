@@ -150,6 +150,15 @@ Context Agent 在写持有者视角时，必须注入 false_belief 作为"该角
 - `hooks` 更新涉及的钩子状态
 - `false_beliefs` 更新（如果有变化）
 
+### 跨章事实一致性（Verifier 通用扫描）
+
+每条 `facts[i]` 带有 `established_chapter`。Verifier 在每章写完后，会对新章节正文做通用 fact-diff：
+- 扫描章节中所有"前世"/既成事实类陈述
+- 对照 `facts` 中 `established_chapter < current` 且 `mutable: false` 的条目
+- 若出现与既有 fact 语义矛盾的陈述 → VERDICT FAIL (cross-chapter fact contradiction)
+
+Verifier 不硬编码任何具体事实，只读本数组。任何项目要想让某条事实被跨章保护，把它写进 `facts` 并标 `mutable: false` 即可。
+
 ### 状态写入的原子性
 
 Data Agent 更新 state 时，所有变更必须在同一操作中完成。
